@@ -7,6 +7,7 @@ import br.com.vozguia.core.data.repository.PersistentQuotaRepository
 import br.com.vozguia.core.data.repository.QuotaRepository
 import br.com.vozguia.core.guardrails.GuardrailPipeline
 import br.com.vozguia.core.guardrails.VozGuiaGuardrailFactory
+import br.com.vozguia.core.routine.data.RoomContactHabitRepository
 import br.com.vozguia.core.routine.data.RoomMediaFavoriteRepository
 import br.com.vozguia.core.routine.data.RoomRoutineReminderRepository
 import br.com.vozguia.core.routine.data.RoomTrustedContactRepository
@@ -18,6 +19,7 @@ class VozGuiaApplication : Application() {
 
     val database: VozGuiaDatabase by lazy {
         Room.databaseBuilder(this, VozGuiaDatabase::class.java, "vozguia.db")
+            .addMigrations(VozGuiaDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -26,6 +28,7 @@ class VozGuiaApplication : Application() {
     val reminderRepository by lazy { RoomRoutineReminderRepository(database.reminderDao()) }
     val favoriteRepository by lazy { RoomMediaFavoriteRepository(database.favoriteDao()) }
     val queryRepository by lazy { RoomUnrecognizedQueryRepository(database.unrecognizedQueryDao()) }
+    val contactHabitRepository by lazy { RoomContactHabitRepository(database.contactHabitDao()) }
     val preferenceRepository by lazy { SharedPreferencesRoutinePreferenceRepository(this) }
 
     val quotaRepository: QuotaRepository by lazy {

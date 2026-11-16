@@ -2,8 +2,8 @@
 
 **Última atualização:** 2026-11-11  
 **Aplicativo:** Voz Guia (`br.com.gabriel.vozguia`)  
-**Desenvolvedor / Responsável:** `[SEU NOME COMPLETO]`  
-**Contato de suporte e privacidade:** `[SEU_EMAIL_DE_SUPORTE@DOMINIO.COM]`
+**Desenvolvedor / Responsável:** Gabriel Dantas da Silva Oliveira  
+**Contato de suporte e privacidade:** `gabrielsilva07032002@gmail.com`
 
 ---
 

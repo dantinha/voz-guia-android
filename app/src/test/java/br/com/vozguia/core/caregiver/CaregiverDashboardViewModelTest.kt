@@ -137,6 +137,18 @@ class CaregiverDashboardViewModelTest {
         val queries = queryRepo.getRecentQueries()
         assertThat(queries.first().resolvedAction).contains("Gabriel Silva")
     }
+
+    @Test
+    fun `updates and persists custom assistant wake phrase and toggle`() = runTest(testDispatcher) {
+        viewModel.setWakePhrase("Alexa")
+        viewModel.setWakeWordEnabled(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.wakePhrase).isEqualTo("Alexa")
+        assertThat(state.wakeWordEnabled).isTrue()
+        assertThat(prefRepo.getString("pref_wake_phrase", "")).isEqualTo("Alexa")
+    }
 }
 
 class FakeMotorolaPermissionProvider : MotorolaPermissionProvider {

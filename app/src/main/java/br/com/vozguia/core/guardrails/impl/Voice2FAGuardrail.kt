@@ -19,6 +19,16 @@ class Voice2FAGuardrail : VozGuiaGuardrail {
         intent: UserIntent,
         currentScreen: ScreenSnapshot?
     ): GuardrailVerdict {
+        if (intent is UserIntent.SendWhatsAppVoiceNote) {
+            if (intent.targetContact.isBlank()) {
+                return GuardrailVerdict.Blocked(
+                    reason = "Destinatário de áudio em branco",
+                    spokenMessage = "Não entendi para quem você quer mandar o áudio. Para quem devo enviar?"
+                )
+            }
+            return GuardrailVerdict.Allowed
+        }
+
         if (intent is UserIntent.SendWhatsAppMessage) {
             val formattedRecipient = intent.targetContact.trim()
             val formattedText = intent.messageText.trim()

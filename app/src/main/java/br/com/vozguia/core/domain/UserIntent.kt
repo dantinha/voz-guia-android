@@ -93,6 +93,30 @@ sealed interface UserIntent {
         override fun isLocalFastPath(): Boolean = true
     }
 
+    data class OpenWhatsAppChat(
+        val targetContact: String
+    ) : UserIntent {
+        override fun isLocalFastPath(): Boolean = true
+    }
+
+    data class SendWhatsAppVoiceNote(
+        val targetContact: String
+    ) : UserIntent {
+        override fun isLocalFastPath(): Boolean = true
+    }
+
+    // ==========================================
+    // Modo Agente v2.1: Contexto de Tela & Ciclo Vocal
+    // ==========================================
+
+    data object DescribeScreenContext : UserIntent {
+        override fun isLocalFastPath(): Boolean = true
+    }
+
+    data object SleepMode : UserIntent {
+        override fun isLocalFastPath(): Boolean = true
+    }
+
     // ==========================================
     // YouTube Modo Rádio
     // ==========================================

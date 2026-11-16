@@ -93,6 +93,10 @@ class AccessBoundaryGuardrailTest {
         assertThat(guardrail.evaluate(UserIntent.ReadUnreadWhatsAppMessages, screen)).isEqualTo(GuardrailVerdict.Allowed)
         assertThat(guardrail.evaluate(UserIntent.PauseMedia, screen)).isEqualTo(GuardrailVerdict.Allowed)
         assertThat(guardrail.evaluate(UserIntent.YouTubeSearchAndPlay("jovem guarda"), screen)).isEqualTo(GuardrailVerdict.Allowed)
+        assertThat(guardrail.evaluate(UserIntent.DescribeScreenContext, screen)).isEqualTo(GuardrailVerdict.Allowed)
+        assertThat(guardrail.evaluate(UserIntent.SleepMode, screen)).isEqualTo(GuardrailVerdict.Allowed)
+        assertThat(guardrail.evaluate(UserIntent.OpenWhatsAppChat("Gabriel"), screen)).isEqualTo(GuardrailVerdict.Allowed)
+        assertThat(guardrail.evaluate(UserIntent.SendWhatsAppVoiceNote("Gabriel"), screen)).isEqualTo(GuardrailVerdict.Allowed)
     }
 
     @Test

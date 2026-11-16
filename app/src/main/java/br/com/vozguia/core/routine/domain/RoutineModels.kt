@@ -56,3 +56,14 @@ data class UnrecognizedQuery(
     val timestamp: Long,
     val resolvedAction: String? = null
 )
+
+/**
+ * Hábito aprendido automaticamente de interação com um contato por faixa de horário (v2.1).
+ */
+data class ContactInteractionHabit(
+    val id: Long = 0,
+    val contactName: String,
+    val timePeriod: TimePeriod,
+    val interactionCount: Int = 1,
+    val lastInteractionAt: Long = 0L
+)

@@ -66,5 +66,7 @@ class SensitiveNodeFilterTest {
         assertThat(filter.evaluate(UserIntent.StopOrCancel, screenWithPassword)).isEqualTo(GuardrailVerdict.Allowed)
         assertThat(filter.evaluate(UserIntent.DirectCall("Gabriel"), screenWithPassword)).isEqualTo(GuardrailVerdict.Allowed)
         assertThat(filter.evaluate(UserIntent.EmergencySos, screenWithPassword)).isEqualTo(GuardrailVerdict.Allowed)
+        assertThat(filter.evaluate(UserIntent.DescribeScreenContext, screenWithPassword)).isEqualTo(GuardrailVerdict.Allowed)
+        assertThat(filter.evaluate(UserIntent.SleepMode, screenWithPassword)).isEqualTo(GuardrailVerdict.Allowed)
     }
 }

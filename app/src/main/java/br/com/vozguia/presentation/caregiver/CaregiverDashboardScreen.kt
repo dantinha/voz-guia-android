@@ -46,20 +46,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.vozguia.core.caregiver.CaregiverDashboardViewModel
 import br.com.vozguia.core.caregiver.MotorolaPermissionItem
+import br.com.vozguia.core.routine.domain.ContactInteractionHabit
 import br.com.vozguia.core.routine.domain.MediaFavorite
 import br.com.vozguia.core.routine.domain.RoutineReminder
 import br.com.vozguia.core.routine.domain.TimePeriod
 import br.com.vozguia.core.routine.domain.TrustedContact
 import br.com.vozguia.core.routine.domain.UnrecognizedQuery
+import br.com.vozguia.core.voice.wakeword.VoiceRuntimeBridge
 
 @Composable
 fun CaregiverDashboardScreen(
     viewModel: CaregiverDashboardViewModel,
     onPreviewTts: (speed: Float, text: String) -> Unit = { _, _ -> },
     onRequestRuntimePermissions: () -> Unit = {},
+    onSyncWakeService: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val wakeTelemetry by VoiceRuntimeBridge.telemetry.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Blindagem", "Família", "Rotina", "Diagnóstico")
 
@@ -122,7 +126,17 @@ fun CaregiverDashboardScreen(
             2 -> RoutineTab(
                 reminders = uiState.reminders,
                 favorites = uiState.favorites,
+                contactHabits = uiState.contactHabits,
                 ttsSpeed = uiState.ttsSpeed,
+                wakePhrase = uiState.wakePhrase,
+                wakeWordEnabled = uiState.wakeWordEnabled,
+                wakeTelemetryPhase = wakeTelemetry.listeningPhase,
+                wakeTelemetryLastHeard = wakeTelemetry.lastFinalText,
+                onWakePhraseSave = { viewModel.setWakePhrase(it) },
+                onWakeWordToggle = { enabled ->
+                    viewModel.setWakeWordEnabled(enabled)
+                    onSyncWakeService(enabled)
+                },
                 onAddReminder = { title, time -> viewModel.addReminder(title, time) },
                 onDeleteReminder = { viewModel.deleteReminder(it) },
                 onAddFavorite = { title, query, period -> viewModel.addFavorite(title, query, period) },
@@ -434,7 +448,14 @@ fun ContactsTab(
 fun RoutineTab(
     reminders: List<RoutineReminder>,
     favorites: List<MediaFavorite>,
+    contactHabits: List<ContactInteractionHabit>,
     ttsSpeed: Float,
+    wakePhrase: String,
+    wakeWordEnabled: Boolean,
+    wakeTelemetryPhase: String,
+    wakeTelemetryLastHeard: String,
+    onWakePhraseSave: (String) -> Unit,
+    onWakeWordToggle: (Boolean) -> Unit,
     onAddReminder: (String, String) -> Unit,
     onDeleteReminder: (Long) -> Unit,
     onAddFavorite: (String, String, TimePeriod) -> Unit,
@@ -450,7 +471,122 @@ fun RoutineTab(
     var favQuery by remember { mutableStateOf("") }
     var favPeriod by remember { mutableStateOf(TimePeriod.MANHA) }
 
+    var customWakeInput by remember(wakePhrase) { mutableStateOf(wakePhrase) }
+
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // v2.1: Nome Personalizado e Chamada por Voz (Wake Word)
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Ativação por Nome (Sem Botão)",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Status: $wakeTelemetryPhase",
+                                color = Color(0xFF81C784),
+                                fontSize = 12.sp
+                            )
+                        }
+                        Switch(
+                            checked = wakeWordEnabled,
+                            onCheckedChange = onWakeWordToggle
+                        )
+                    }
+
+                    if (wakeTelemetryLastHeard.isNotBlank()) {
+                        Text(
+                            text = "Última fala ouvida: \"$wakeTelemetryLastHeard\"",
+                            color = Color.LightGray,
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Escolha rápida ou digite o nome:", color = Color.LightGray, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("Guia", "Alexa", "Amigo", "Voz Guia").forEach { preset ->
+                            FilterChip(
+                                selected = wakePhrase.equals(preset, ignoreCase = true),
+                                onClick = {
+                                    customWakeInput = preset
+                                    onWakePhraseSave(preset)
+                                },
+                                label = { Text(preset, fontSize = 12.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF2E7D32),
+                                    selectedLabelColor = Color.White,
+                                    labelColor = Color.LightGray
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = customWakeInput,
+                        onValueChange = { customWakeInput = it },
+                        label = { Text("Nome personalizado (ex: Alexa, Bento)") },
+                        singleLine = true,
+                        colors = darkTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { onWakePhraseSave(customWakeInput) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Salvar Nome do Assistente")
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Seu pai fala \"$wakePhrase\" (vibra e bipa na hora) e diz \"Desative\" ou \"Dorme\" para encerrar.",
+                        color = Color(0xFFAAAAAA),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+
+        // v2.1: Hábitos de Contato Aprendidos Automaticamente
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "Rotina Aprendida Automaticamente",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    if (contactHabits.isEmpty()) {
+                        Text(
+                            text = "O agente aprenderá os contatos mais acionados por turno conforme seu pai usar o WhatsApp e chamadas.",
+                            color = Color.LightGray,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        contactHabits.take(5).forEach { habit ->
+                            Text(
+                                text = "• ${habit.contactName} (${habit.timePeriod.name}) — ${habit.interactionCount} interações",
+                                color = Color(0xFF81C784),
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // Velocidade da Voz
         item {
             Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {

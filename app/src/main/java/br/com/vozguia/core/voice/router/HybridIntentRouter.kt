@@ -31,6 +31,14 @@ class HybridIntentRouter {
             return UserIntent.StopOrCancel
         }
 
+        if (matchesPattern(normalized, SLEEP_MODE_PATTERNS)) {
+            return UserIntent.SleepMode
+        }
+
+        if (matchesPattern(normalized, DESCRIBE_SCREEN_PATTERNS)) {
+            return UserIntent.DescribeScreenContext
+        }
+
         if (matchesPattern(normalized, SKIP_AD_PATTERNS)) {
             return UserIntent.YouTubeSkipAd
         }
@@ -57,6 +65,22 @@ class HybridIntentRouter {
 
         if (matchesPattern(normalized, WA_PLAY_AUDIO_GENERIC_PATTERNS)) {
             return UserIntent.PlayWhatsAppAudio(contactName = null)
+        }
+
+        val sendVoiceNoteMatch = SEND_WA_VOICE_NOTE_REGEX.find(trimmed)
+        if (sendVoiceNoteMatch != null) {
+            val contact = sendVoiceNoteMatch.groups["contact"]?.value?.trim() ?: ""
+            if (contact.isNotBlank()) {
+                return UserIntent.SendWhatsAppVoiceNote(targetContact = contact)
+            }
+        }
+
+        val openWaChatMatch = OPEN_WA_CHAT_PATTERNS.firstNotNullOfOrNull { it.find(trimmed) }
+        if (openWaChatMatch != null) {
+            val contact = openWaChatMatch.groups["contact"]?.value?.trim() ?: ""
+            if (contact.isNotBlank()) {
+                return UserIntent.OpenWhatsAppChat(targetContact = contact)
+            }
         }
 
         val sendWaMatch = SEND_WA_REGEX.find(trimmed)
@@ -160,7 +184,16 @@ class HybridIntentRouter {
         )
 
         private val STOP_PATTERNS = listOf(
-            Regex("""\b(?:para|parar|cancela|cancelar|cala a boca|para de falar|silencio)\b""")
+            Regex("""^para$"""),
+            Regex("""\b(?:parar|cancela|cancelar|cala a boca|para de falar|para tudo|para agora|silencio)\b""")
+        )
+
+        private val SLEEP_MODE_PATTERNS = listOf(
+            Regex("""\b(?:desative|desativa|dorme|dormir|pode dormir|vai dormir|fecha o microfone|encerrar escuta)\b""")
+        )
+
+        private val DESCRIBE_SCREEN_PATTERNS = listOf(
+            Regex("""\b(?:o que tem na tela|o que esta acontecendo|o que ta acontecendo|onde eu to|onde estou|que tela e essa|descreve a tela|le a tela|ler a tela)\b""")
         )
 
         private val SKIP_AD_PATTERNS = listOf(
@@ -220,6 +253,15 @@ class HybridIntentRouter {
 
         private val PLAY_AUDIO_WITH_CONTACT_REGEX = Regex(
             """(?i)\b(?:toca|ouvir?)\s+(?:o\s+)?áudio\s+(?:do|da|de)\s+(?<contact>[\p{L}\s]+)"""
+        )
+
+        private val SEND_WA_VOICE_NOTE_REGEX = Regex(
+            """(?i)\b(?:manda|mandar|envia|enviar|grava|gravar)\s+(?:um\s+)?[áa]udio\s+(?:pro|pra|para\s+o|para\s+a|para)\s+(?<contact>[\p{L}\s]+?)(?:\s+no\s+(?:zap|whatsapp))?$"""
+        )
+
+        private val OPEN_WA_CHAT_PATTERNS = listOf(
+            Regex("""(?i)\b(?:abre|abrir|entra|entrar|mostra|ver)\s+(?:o\s+|a\s+|na\s+)?(?:zap|whatsapp|conversa)\s+(?:do|da|de|com)\s+(?<contact>[\p{L}\s]+?)(?:\s+no\s+(?:zap|whatsapp))?$"""),
+            Regex("""(?i)\b(?:quero\s+falar|falar|abre|abrir)\s+(?:com\s+)?(?:o\s+|a\s+)?(?<contact>[\p{L}\s]+?)\s+no\s+(?:zap|whatsapp)$""")
         )
 
         private val SEND_WA_REGEX = Regex(

@@ -26,7 +26,8 @@ class SensitiveNodeFilter : VozGuiaGuardrail {
         if (intent is UserIntent.EmergencySos ||
             intent is UserIntent.TimeQuery || intent is UserIntent.DateQuery ||
             intent is UserIntent.BatteryQuery || intent is UserIntent.StopOrCancel ||
-            intent is UserIntent.DirectCall) {
+            intent is UserIntent.DirectCall || intent is UserIntent.DescribeScreenContext ||
+            intent is UserIntent.SleepMode) {
             return GuardrailVerdict.Allowed
         }
 

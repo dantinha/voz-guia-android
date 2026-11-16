@@ -12,6 +12,9 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import br.com.vozguia.core.routine.domain.ContactInteractionHabit
 import br.com.vozguia.core.routine.domain.MediaFavorite
 import br.com.vozguia.core.routine.domain.RoutineReminder
 import br.com.vozguia.core.routine.domain.TimePeriod
@@ -138,6 +141,34 @@ data class UnrecognizedQueryEntity(
     }
 }
 
+@Entity(tableName = "contact_interaction_habits")
+data class ContactInteractionHabitEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val contactName: String,
+    val timePeriod: String,
+    val interactionCount: Int,
+    val lastInteractionAt: Long
+) {
+    fun toDomain(): ContactInteractionHabit = ContactInteractionHabit(
+        id = id,
+        contactName = contactName,
+        timePeriod = TimePeriod.valueOf(timePeriod),
+        interactionCount = interactionCount,
+        lastInteractionAt = lastInteractionAt
+    )
+
+    companion object {
+        fun fromDomain(domain: ContactInteractionHabit): ContactInteractionHabitEntity =
+            ContactInteractionHabitEntity(
+                id = domain.id,
+                contactName = domain.contactName,
+                timePeriod = domain.timePeriod.name,
+                interactionCount = domain.interactionCount,
+                lastInteractionAt = domain.lastInteractionAt
+            )
+    }
+}
+
 class RoutineTypeConverters {
     @TypeConverter
     fun fromStringList(value: List<String>?): String =
@@ -234,14 +265,33 @@ interface UnrecognizedQueryDao {
     suspend fun clearOld(beforeTimestamp: Long)
 }
 
+@Dao
+interface ContactHabitDao {
+    @Query("SELECT * FROM contact_interaction_habits ORDER BY interactionCount DESC")
+    suspend fun getAll(): List<ContactInteractionHabitEntity>
+
+    @Query("SELECT * FROM contact_interaction_habits WHERE timePeriod = :period ORDER BY interactionCount DESC LIMIT 1")
+    suspend fun getTopForPeriod(period: String): ContactInteractionHabitEntity?
+
+    @Query("SELECT * FROM contact_interaction_habits WHERE LOWER(contactName) = LOWER(:contactName) AND timePeriod = :period LIMIT 1")
+    suspend fun findByContactAndPeriod(contactName: String, period: String): ContactInteractionHabitEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(habit: ContactInteractionHabitEntity): Long
+
+    @Update
+    suspend fun update(habit: ContactInteractionHabitEntity)
+}
+
 @Database(
     entities = [
         TrustedContactEntity::class,
         RoutineReminderEntity::class,
         MediaFavoriteEntity::class,
-        UnrecognizedQueryEntity::class
+        UnrecognizedQueryEntity::class,
+        ContactInteractionHabitEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(RoutineTypeConverters::class)
@@ -250,4 +300,23 @@ abstract class VozGuiaDatabase : RoomDatabase() {
     abstract fun reminderDao(): RoutineReminderDao
     abstract fun favoriteDao(): MediaFavoriteDao
     abstract fun unrecognizedQueryDao(): UnrecognizedQueryDao
+    abstract fun contactHabitDao(): ContactHabitDao
+
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `contact_interaction_habits` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `contactName` TEXT NOT NULL,
+                        `timePeriod` TEXT NOT NULL,
+                        `interactionCount` INTEGER NOT NULL,
+                        `lastInteractionAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+    }
 }

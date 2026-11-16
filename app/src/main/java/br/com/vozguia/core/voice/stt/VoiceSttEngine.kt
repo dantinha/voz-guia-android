@@ -19,7 +19,9 @@ interface VoiceSttEngine {
         onVoiceStart: () -> Unit,
         onVoiceEnd: () -> Unit,
         onResult: (String) -> Unit,
-        onError: (Int) -> Unit
+        onError: (Int) -> Unit,
+        onPartialResult: (List<String>) -> Unit = {},
+        onAllResults: (List<String>) -> Unit = {}
     )
     fun stopListening()
     fun destroy()
@@ -41,7 +43,9 @@ class AndroidOnDeviceSttEngine(
         onVoiceStart: () -> Unit,
         onVoiceEnd: () -> Unit,
         onResult: (String) -> Unit,
-        onError: (Int) -> Unit
+        onError: (Int) -> Unit,
+        onPartialResult: (List<String>) -> Unit,
+        onAllResults: (List<String>) -> Unit
     ) {
         mainHandler.post {
             try {
@@ -69,16 +73,24 @@ class AndroidOnDeviceSttEngine(
                         }
 
                         override fun onResults(results: Bundle?) {
-                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                            val bestMatch = matches?.firstOrNull()?.trim() ?: ""
+                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: emptyList()
+                            val bestMatch = matches.firstOrNull()?.trim() ?: ""
                             if (bestMatch.isNotBlank()) {
+                                onAllResults(matches)
                                 onResult(bestMatch)
                             } else {
                                 onError(SpeechRecognizer.ERROR_NO_MATCH)
                             }
                         }
 
-                        override fun onPartialResults(partialResults: Bundle?) {}
+                        override fun onPartialResults(partialResults: Bundle?) {
+                            val partials = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                                ?.filter { it.isNotBlank() }
+                                ?: emptyList()
+                            if (partials.isNotEmpty()) {
+                                onPartialResult(partials)
+                            }
+                        }
                         override fun onEvent(eventType: Int, params: Bundle?) {}
                     })
                 }

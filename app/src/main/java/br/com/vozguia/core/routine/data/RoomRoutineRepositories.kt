@@ -2,6 +2,8 @@ package br.com.vozguia.core.routine.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import br.com.vozguia.core.routine.data.room.ContactHabitDao
+import br.com.vozguia.core.routine.data.room.ContactInteractionHabitEntity
 import br.com.vozguia.core.routine.data.room.MediaFavoriteDao
 import br.com.vozguia.core.routine.data.room.MediaFavoriteEntity
 import br.com.vozguia.core.routine.data.room.RoutineReminderDao
@@ -10,6 +12,7 @@ import br.com.vozguia.core.routine.data.room.TrustedContactDao
 import br.com.vozguia.core.routine.data.room.TrustedContactEntity
 import br.com.vozguia.core.routine.data.room.UnrecognizedQueryDao
 import br.com.vozguia.core.routine.data.room.UnrecognizedQueryEntity
+import br.com.vozguia.core.routine.domain.ContactInteractionHabit
 import br.com.vozguia.core.routine.domain.MediaFavorite
 import br.com.vozguia.core.routine.domain.RoutineReminder
 import br.com.vozguia.core.routine.domain.TimePeriod
@@ -118,5 +121,36 @@ class SharedPreferencesRoutinePreferenceRepository(
 
     override suspend fun setFloat(key: String, value: Float) {
         prefs.edit().putFloat(key, value).apply()
+    }
+}
+
+class RoomContactHabitRepository(
+    private val dao: ContactHabitDao
+) : ContactHabitRepository {
+    override suspend fun getAllHabits(): List<ContactInteractionHabit> =
+        dao.getAll().map { it.toDomain() }
+
+    override suspend fun getTopHabitForPeriod(period: TimePeriod): ContactInteractionHabit? =
+        dao.getTopForPeriod(period.name)?.toDomain()
+
+    override suspend fun recordInteraction(contactName: String, period: TimePeriod, timestampMs: Long) {
+        val existing = dao.findByContactAndPeriod(contactName, period.name)
+        if (existing != null) {
+            dao.update(
+                existing.copy(
+                    interactionCount = existing.interactionCount + 1,
+                    lastInteractionAt = timestampMs
+                )
+            )
+        } else {
+            dao.insert(
+                ContactInteractionHabitEntity(
+                    contactName = contactName.trim(),
+                    timePeriod = period.name,
+                    interactionCount = 1,
+                    lastInteractionAt = timestampMs
+                )
+            )
+        }
     }
 }

@@ -62,3 +62,12 @@ interface RoutinePreferenceRepository {
     suspend fun getFloat(key: String, defaultValue: Float): Float
     suspend fun setFloat(key: String, value: Float)
 }
+
+/**
+ * Contrato de persistência para hábitos aprendidos de contato por turno (v2.1).
+ */
+interface ContactHabitRepository {
+    suspend fun getAllHabits(): List<br.com.vozguia.core.routine.domain.ContactInteractionHabit>
+    suspend fun getTopHabitForPeriod(period: TimePeriod): br.com.vozguia.core.routine.domain.ContactInteractionHabit?
+    suspend fun recordInteraction(contactName: String, period: TimePeriod, timestampMs: Long)
+}

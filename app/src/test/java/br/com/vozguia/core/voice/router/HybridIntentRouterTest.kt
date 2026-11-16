@@ -143,4 +143,55 @@ class HybridIntentRouterTest {
         val intent = router.route("abracadabra batatinha")
         assertThat(intent).isInstanceOf(UserIntent.UnknownIntent::class.java)
     }
+
+    // ==========================================
+    // Testes v2.1: Narrador de Tela, WhatsApp Áudio-First & Sleep
+    // ==========================================
+
+    @Test
+    fun `deve rotear perguntas sobre o que esta na tela para DescribeScreenContext`() {
+        val variants = listOf(
+            "o que tem na tela",
+            "o que está acontecendo na tela",
+            "onde eu tô",
+            "que tela é essa",
+            "lê a tela pra mim",
+            "o que está acontecendo"
+        )
+        for (phrase in variants) {
+            assertThat(router.route(phrase)).isEqualTo(UserIntent.DescribeScreenContext)
+        }
+    }
+
+    @Test
+    fun `deve rotear comandos de dormir ou desativar para SleepMode`() {
+        val variants = listOf("desative", "desativa", "dorme", "pode dormir", "vai dormir", "fecha o microfone")
+        for (phrase in variants) {
+            assertThat(router.route(phrase)).isEqualTo(UserIntent.SleepMode)
+        }
+    }
+
+    @Test
+    fun `deve rotear abertura de conversa especifica do WhatsApp para OpenWhatsAppChat`() {
+        val intent1 = router.route("abre o zap do Gabriel")
+        assertThat(intent1).isEqualTo(UserIntent.OpenWhatsAppChat(targetContact = "Gabriel"))
+
+        val intent2 = router.route("abre a conversa da Maria")
+        assertThat(intent2).isEqualTo(UserIntent.OpenWhatsAppChat(targetContact = "Maria"))
+
+        val intent3 = router.route("quero falar com o Carlos no whatsapp")
+        assertThat(intent3).isEqualTo(UserIntent.OpenWhatsAppChat(targetContact = "Carlos"))
+    }
+
+    @Test
+    fun `deve rotear envio de audio para SendWhatsAppVoiceNote sem exigir texto escrito`() {
+        val intent1 = router.route("manda um áudio pro Gabriel")
+        assertThat(intent1).isEqualTo(UserIntent.SendWhatsAppVoiceNote(targetContact = "Gabriel"))
+
+        val intent2 = router.route("enviar áudio para a Maria")
+        assertThat(intent2).isEqualTo(UserIntent.SendWhatsAppVoiceNote(targetContact = "Maria"))
+
+        val intent3 = router.route("gravar áudio pro meu filho")
+        assertThat(intent3).isEqualTo(UserIntent.SendWhatsAppVoiceNote(targetContact = "meu filho"))
+    }
 }

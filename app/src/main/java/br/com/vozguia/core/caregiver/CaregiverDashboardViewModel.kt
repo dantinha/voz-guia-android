@@ -2,16 +2,19 @@ package br.com.vozguia.core.caregiver
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.vozguia.core.routine.data.ContactHabitRepository
 import br.com.vozguia.core.routine.data.MediaFavoriteRepository
 import br.com.vozguia.core.routine.data.RoutinePreferenceRepository
 import br.com.vozguia.core.routine.data.RoutineReminderRepository
 import br.com.vozguia.core.routine.data.TrustedContactRepository
 import br.com.vozguia.core.routine.data.UnrecognizedQueryRepository
+import br.com.vozguia.core.routine.domain.ContactInteractionHabit
 import br.com.vozguia.core.routine.domain.MediaFavorite
 import br.com.vozguia.core.routine.domain.RoutineReminder
 import br.com.vozguia.core.routine.domain.TimePeriod
 import br.com.vozguia.core.routine.domain.TrustedContact
 import br.com.vozguia.core.routine.domain.UnrecognizedQuery
+import br.com.vozguia.core.voice.wakeword.VoiceRuntimeBridge
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,8 +37,11 @@ data class CaregiverDashboardUiState(
     val reminders: List<RoutineReminder> = emptyList(),
     val favorites: List<MediaFavorite> = emptyList(),
     val unrecognizedQueries: List<UnrecognizedQuery> = emptyList(),
+    val contactHabits: List<ContactInteractionHabit> = emptyList(),
     val ttsSpeed: Float = 0.92f,
     val userFirstName: String = "Valdir",
+    val wakePhrase: String = "Guia",
+    val wakeWordEnabled: Boolean = true,
     val isLoading: Boolean = false
 )
 
@@ -45,7 +51,8 @@ class CaregiverDashboardViewModel(
     private val favoriteRepository: MediaFavoriteRepository,
     private val queryRepository: UnrecognizedQueryRepository,
     private val preferenceRepository: RoutinePreferenceRepository,
-    private val permissionProvider: MotorolaPermissionProvider
+    private val permissionProvider: MotorolaPermissionProvider,
+    private val contactHabitRepository: ContactHabitRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CaregiverDashboardUiState())
@@ -64,8 +71,13 @@ class CaregiverDashboardViewModel(
             val reminders = reminderRepository.getAllReminders()
             val favorites = favoriteRepository.getAllFavorites()
             val queries = queryRepository.getRecentQueries()
+            val habits = contactHabitRepository?.getAllHabits() ?: emptyList()
             val ttsSpeed = preferenceRepository.getFloat("pref_tts_speed", 0.92f)
             val userName = preferenceRepository.getString("pref_user_first_name", "Valdir")
+            val wakePhrase = preferenceRepository.getString(PREF_WAKE_PHRASE, "Guia")
+            val wakeEnabled = preferenceRepository.getString(PREF_WAKE_ENABLED, "true").toBoolean()
+
+            VoiceRuntimeBridge.updateWakeConfig(wakePhrase, wakeEnabled)
 
             _uiState.value = CaregiverDashboardUiState(
                 permissions = permissions,
@@ -73,8 +85,11 @@ class CaregiverDashboardViewModel(
                 reminders = reminders,
                 favorites = favorites,
                 unrecognizedQueries = queries,
+                contactHabits = habits,
                 ttsSpeed = ttsSpeed,
                 userFirstName = userName,
+                wakePhrase = wakePhrase,
+                wakeWordEnabled = wakeEnabled,
                 isLoading = false
             )
         }
@@ -187,5 +202,27 @@ class CaregiverDashboardViewModel(
                 refreshState()
             }
         }
+    }
+
+    fun setWakePhrase(phrase: String) {
+        viewModelScope.launch {
+            val clean = phrase.trim().ifBlank { "Guia" }
+            preferenceRepository.setString(PREF_WAKE_PHRASE, clean)
+            VoiceRuntimeBridge.updateWakeConfig(clean, _uiState.value.wakeWordEnabled)
+            _uiState.value = _uiState.value.copy(wakePhrase = clean)
+        }
+    }
+
+    fun setWakeWordEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferenceRepository.setString(PREF_WAKE_ENABLED, enabled.toString())
+            VoiceRuntimeBridge.updateWakeConfig(_uiState.value.wakePhrase, enabled)
+            _uiState.value = _uiState.value.copy(wakeWordEnabled = enabled)
+        }
+    }
+
+    companion object {
+        const val PREF_WAKE_PHRASE = "pref_wake_phrase"
+        const val PREF_WAKE_ENABLED = "pref_wake_word_enabled"
     }
 }

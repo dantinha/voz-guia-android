@@ -71,4 +71,13 @@ class Voice2FAGuardrailTest {
         )
         assertThat(callVerdict).isEqualTo(GuardrailVerdict.Allowed)
     }
+
+    @Test
+    fun `quando intencao for gravar audio no WhatsApp, exige destinatario valido e libera gravacao sem 2FA de texto`() = runTest {
+        val validVerdict = guardrail.evaluate(UserIntent.SendWhatsAppVoiceNote(targetContact = "Gabriel"), null)
+        assertThat(validVerdict).isEqualTo(GuardrailVerdict.Allowed)
+
+        val blankVerdict = guardrail.evaluate(UserIntent.SendWhatsAppVoiceNote(targetContact = " "), null)
+        assertThat(blankVerdict).isInstanceOf(GuardrailVerdict.Blocked::class.java)
+    }
 }

@@ -54,10 +54,14 @@ class AccessBoundaryGuardrail(
                         intent is UserIntent.PauseMedia ||
                         intent is UserIntent.ResumeMedia ||
                         intent is UserIntent.NextMedia ||
-                        intent is UserIntent.ReadUnreadWhatsAppMessages
+                        intent is UserIntent.ReadUnreadWhatsAppMessages ||
+                        intent is UserIntent.DescribeScreenContext ||
+                        intent is UserIntent.SleepMode
 
                 // Intenções que lançam WhatsApp, Telefone ou YouTube diretamente via Intent do sistema
                 val isIntentBasedLaunch = intent is UserIntent.SendWhatsAppMessage ||
+                        intent is UserIntent.OpenWhatsAppChat ||
+                        intent is UserIntent.SendWhatsAppVoiceNote ||
                         intent is UserIntent.DirectCall ||
                         intent is UserIntent.YouTubeSearchAndPlay
 

@@ -1,6 +1,7 @@
 package br.com.vozguia.presentation
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -21,7 +23,9 @@ import br.com.vozguia.VozGuiaApplication
 import br.com.vozguia.core.caregiver.AndroidMotorolaPermissionProvider
 import br.com.vozguia.core.caregiver.CaregiverDashboardViewModel
 import br.com.vozguia.core.voice.tts.AndroidTextToSpeechSpeaker
+import br.com.vozguia.core.voice.wakeword.VoiceRuntimeBridge
 import br.com.vozguia.presentation.caregiver.CaregiverDashboardScreen
+import br.com.vozguia.service.voice.VoiceWakeWordService
 
 class MainActivity : ComponentActivity() {
 
@@ -32,6 +36,7 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
         viewModel.refreshState()
+        syncWakeServiceState()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,12 +60,14 @@ class MainActivity : ComponentActivity() {
                     favoriteRepository = app.favoriteRepository,
                     queryRepository = app.queryRepository,
                     preferenceRepository = app.preferenceRepository,
-                    permissionProvider = permissionProvider
+                    permissionProvider = permissionProvider,
+                    contactHabitRepository = app.contactHabitRepository
                 ) as T
             }
         }
 
         viewModel = ViewModelProvider(this, factory)[CaregiverDashboardViewModel::class.java]
+        syncWakeServiceState()
 
         setContent {
             MaterialTheme {
@@ -80,6 +87,15 @@ class MainActivity : ComponentActivity() {
                         },
                         onRequestRuntimePermissions = {
                             requestCoreRuntimePermissions()
+                        },
+                        onSyncWakeService = { enabled ->
+                            if (enabled) {
+                                syncWakeServiceState(forceStart = true)
+                            } else {
+                                try {
+                                    VoiceWakeWordService.stop(this@MainActivity)
+                                } catch (_: Exception) {}
+                            }
                         },
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -111,5 +127,15 @@ class MainActivity : ComponentActivity() {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         }
         runtimePermissionLauncher.launch(permissions.toTypedArray())
+    }
+
+    private fun syncWakeServiceState(forceStart: Boolean = false) {
+        val hasMic = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val wakeEnabled = forceStart || VoiceRuntimeBridge.config.value.wakeWordEnabled
+        if (hasMic && wakeEnabled) {
+            try {
+                VoiceWakeWordService.start(this)
+            } catch (_: Exception) {}
+        }
     }
 }

@@ -163,3 +163,40 @@ class FakeRoutinePreferenceRepository : RoutinePreferenceRepository {
         floatPrefs[key] = value
     }
 }
+
+class FakeContactHabitRepository : br.com.vozguia.core.routine.data.ContactHabitRepository {
+    private val habits = mutableListOf<br.com.vozguia.core.routine.domain.ContactInteractionHabit>()
+    private var nextId = 1L
+
+    override suspend fun getAllHabits(): List<br.com.vozguia.core.routine.domain.ContactInteractionHabit> =
+        habits.sortedByDescending { it.interactionCount }
+
+    override suspend fun getTopHabitForPeriod(
+        period: TimePeriod
+    ): br.com.vozguia.core.routine.domain.ContactInteractionHabit? =
+        habits.filter { it.timePeriod == period }
+            .maxByOrNull { it.interactionCount }
+
+    override suspend fun recordInteraction(contactName: String, period: TimePeriod, timestampMs: Long) {
+        val index = habits.indexOfFirst {
+            it.contactName.equals(contactName, ignoreCase = true) && it.timePeriod == period
+        }
+        if (index != -1) {
+            val current = habits[index]
+            habits[index] = current.copy(
+                interactionCount = current.interactionCount + 1,
+                lastInteractionAt = timestampMs
+            )
+        } else {
+            habits.add(
+                br.com.vozguia.core.routine.domain.ContactInteractionHabit(
+                    id = nextId++,
+                    contactName = contactName.trim(),
+                    timePeriod = period,
+                    interactionCount = 1,
+                    lastInteractionAt = timestampMs
+                )
+            )
+        }
+    }
+}
