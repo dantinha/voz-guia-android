@@ -112,4 +112,5 @@ Após revisão sênior de produto, o projeto foi estruturado em **5 Épicos** e 
 - [Épico 3 — Módulos de Ação Autônoma (WhatsApp, Telefone & YouTube)](file:///D:/Projetos/voz-guia-android/docs/specs/epic-3-autonomous-action-modules.md)
 - [Épico 4 — Memória de Rotina, Grafo Familiar & Autonomia Diária](file:///D:/Projetos/voz-guia-android/docs/specs/epic-4-routine-memory-profile.md)
 - [Épico 5 — Modo Cuidador (Familiar), Segurança Operacional & Resiliência](file:///D:/Projetos/voz-guia-android/docs/specs/epic-5-caregiver-mode-safety-resilience.md)
+- [Especificação Técnica de Guardrails: Limites de Atuação, Segurança, Acessos e Custo Free Tier](file:///D:/Projetos/voz-guia-android/docs/specs/guardrails-security-access-cost-control.md)
 - [Diagrama de Arquitetura e Máquina de Estados (Draw.io)](file:///D:/Projetos/voz-guia-android/docs/architecture/voz-guia-c4-and-state-machine.drawio)

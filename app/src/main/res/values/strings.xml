@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Voz Guia</string>
+    <string name="accessibility_service_description">Serviço de navegação assistiva e controle por voz do Voz Guia.</string>
+</resources>
